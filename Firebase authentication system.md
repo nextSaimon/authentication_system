@@ -219,8 +219,61 @@ export default function SignupPage() {
 ## 🔐 `app/dashboard/page.js`
 
 ```js
-export default function DashboardPage() {
-  return <div className="p-10 text-xl font-bold">Welcome to your Dashboard!</div>;
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase/config";
+
+export default function Dashboard() {
+  const [user, setUser] = useState(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser && currentUser.emailVerified) {
+        setUser(currentUser);
+      } else {
+        router.push("/login");
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // Clear the token cookie on logout
+      await fetch("/api/logout", { method: "POST" });
+      router.push("/login");
+    } catch (err) {
+      console.error("Error signing out:", err);
+    }
+  };
+
+  if (!user)
+    return (
+      <div className="text-center mt-10 text-gray-700 font-medium">
+        Loading...
+      </div>
+    );
+
+  return (
+    <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md mt-10">
+      <h1 className="text-2xl font-bold text-gray-800">
+        Welcome, {user.email}!
+      </h1>
+      <p className="mt-4 text-gray-600">This is your dashboard.</p>
+      <button
+        onClick={handleLogout}
+        className="mt-6 w-full p-3 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
+      >
+        Logout
+      </button>
+    </div>
+  );
 }
 ```
 
